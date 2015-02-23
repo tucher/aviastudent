@@ -40,7 +40,7 @@ rm /etc/nginx/sites-enabled/default
 service nginx restart
 cd ~
 virtualenv api-ws-venv
-api-ws-venv/bin/pip3 install tornado django
+api-ws-venv/bin/pip3 install tornado django psycopg2
 
 mkdir logs
 cp aviastudent/network-components/api-ws-server_supervisor.conf /etc/supervisor/conf.d/
