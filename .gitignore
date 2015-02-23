@@ -1,3 +1,11 @@
 network-components/api-ws-server/.idea/*
 sftp-config.json
 network-components/install.log
+
+*.pyc
+
+*.pyc
+
+*.pyc
+
+network-components/aviastudent_backend/aviastudent_backend/__pycache__/urls.cpython-34.pyc

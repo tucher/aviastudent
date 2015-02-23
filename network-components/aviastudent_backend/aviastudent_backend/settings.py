@@ -36,6 +36,8 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'social.apps.django_app.default',
+    'aviastudent_backend'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -60,8 +62,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'aviastudent',
-        'USER': 'Tucher',
-        'PASSWORD': 'postgres',
+        'USER': 'postgres',
+        'PASSWORD': 'aviastudent',
         'HOST': '127.0.0.1'
     }
 }
@@ -80,7 +82,52 @@ USE_L10N = True
 USE_TZ = True
 
 
+LOGIN_REDIRECT_URL = '/'
+LOGIN_URL = '/'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = 'static/'
+
+TEMPLATE_CONTEXT_PROCESSORS = (
+   'django.contrib.auth.context_processors.auth',
+   'django.core.context_processors.debug',
+   'django.core.context_processors.i18n',
+   'django.core.context_processors.media',
+   'django.core.context_processors.static',
+   'django.core.context_processors.tz',
+   'django.contrib.messages.context_processors.messages',
+   'social.apps.django_app.context_processors.backends',
+   'social.apps.django_app.context_processors.login_redirect',
+)
+
+AUTHENTICATION_BACKENDS = (
+   'social.backends.facebook.FacebookOAuth2',
+   'social.backends.google.GoogleOAuth2',
+   'social.backends.twitter.TwitterOAuth',
+   'django.contrib.auth.backends.ModelBackend',
+)
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTOCOL', 'https')
+
+try:
+    import aviastudent_backend.facebook_credentials
+    SOCIAL_AUTH_FACEBOOK_KEY = aviastudent_backend.facebook_credentials.SOCIAL_AUTH_FACEBOOK_KEY
+    SOCIAL_AUTH_FACEBOOK_SECRET = aviastudent_backend.facebook_credentials.SOCIAL_AUTH_FACEBOOK_SECRET
+except:
+    print('Facebook credentials are not found')
+
+try:
+    import aviastudent_backend.google_credentials
+    SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = aviastudent_backend.google_credentials.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
+    SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = aviastudent_backend.google_credentials.SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET
+except:
+    print('Google credentials are not found')
+
+try:
+    import aviastudent_backend.twitter_credentials
+    SOCIAL_AUTH_TWITTER_KEY = aviastudent_backend.twitter_credentials.SOCIAL_AUTH_TWITTER_KEY
+    SOCIAL_AUTH_TWITTER_SECRET = aviastudent_backend.twitter_credentials.SOCIAL_AUTH_TWITTER_SECRET
+except:
+    print('Twitter credentials are not found')
