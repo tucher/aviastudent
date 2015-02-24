@@ -9,3 +9,5 @@ network-components/install.log
 *.pyc
 
 network-components/aviastudent_backend/aviastudent_backend/__pycache__/urls.cpython-34.pyc
+
+*.pyc

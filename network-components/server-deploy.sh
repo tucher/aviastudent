@@ -31,19 +31,18 @@ su - postgres -c "psql -d aviastudent -a -f /var/lib/postgresql/setup_db_sql_que
 
 
 errcho -e "\n\n\n\n\n==================================SETTING UP aviastudent SERVER=================================="
-#cp -r www/aviastudent /var/www/
-#chown -R www-data:www-data /var/www/aviastudent
-#chmod 755 /var/www
-cp nginx/aviastudent /etc/nginx/sites-available/aviastudent
-ln -s nginx/aviastudent /etc/nginx/sites-enabled/aviastudent
+
+
+ln -s /home/aviastudent/aviastudent/network-components/nginx/aviastudent /etc/nginx/sites-enabled/aviastudent
 rm /etc/nginx/sites-enabled/default
 service nginx restart
 cd ~
 virtualenv api-ws-venv
-api-ws-venv/bin/pip3 install tornado django psycopg2 djangorestframework markdown django-filter uwsgi
+source api-ws-venv/bin/activate
+pip3 install tornado django psycopg2 djangorestframework markdown django-filter uwsgi python-social-auth
 
 mkdir logs
-ln -s  /root/aviastudent/network-components/api-ws-server_supervisor.conf /etc/supervisor/conf.d/
-ln -s  /root/aviastudent/network-components/aviastudent_backend_supervisor.conf /etc/supervisor/conf.d/
+ln -s  /home/aviastudent/aviastudent/network-components/api-ws-server_supervisor.conf /etc/supervisor/conf.d/
+ln -s  /home/aviastudent/aviastudent/network-components/aviastudent_backend_supervisor.conf /etc/supervisor/conf.d/
 
 service supervisor restart
