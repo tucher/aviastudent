@@ -279,6 +279,8 @@ function AviastudentWS(host)
                             }
       _this_obj.socket.onmessage = _this_obj.MessageHandler;
     }
+    else
+      _this_obj.socket.send('{"ping":""}');
   }
   window.setInterval(this.hostTimeout, 2000);
 

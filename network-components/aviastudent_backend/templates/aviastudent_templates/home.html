@@ -77,7 +77,7 @@
       api.OnConnected = function()
                                      {
                                        console.log('ws api connected')
-                                       api.sendObject({'msg':'hello wo'})
+                                       api.sendObject({'token':localStorage.getItem("token")})
                                      }
 
       api.OnDisconnected = function()
