@@ -1,0 +1,144 @@
+{% extends 'aviastudent_templates/base.html' %}
+
+{% block main %}
+  <script src="/static/js/ws-api.js"></script>
+	<script>
+  $('#logoutBtn').hide()
+          $('#loginBtn').hide()
+
+   function statusChangeCallback(response) {
+    // console.log('statusChangeCallback');
+    // console.log(response);
+
+    if (response.status === 'connected') {
+              $.post( "/api/v1/auth/facebook/", { "access_token": response.authResponse.accessToken, "backend": "facebook" })
+              .done(function( data ) {
+                localStorage.setItem("token", data.token);
+                console.log( "Token received: ", data.token );
+                $('#logoutBtn').show()
+                $('#loginBtn').hide()
+              });
+
+    } else if (response.status === 'not_authorized') {
+    
+    } else {
+      // The person is not logged into Facebook, so we're not sure if
+      // they are logged into this app or not.
+  
+    }
+
+
+  }
+   function checkLoginState() {
+    FB.getLoginStatus(function(response) {
+      statusChangeCallback(response);
+    });
+
+  }
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId      : '672817362827179',
+        xfbml      : true,
+        version    : 'v2.2'
+      });
+     if(localStorage.getItem("token") == ""){
+          $('#logoutBtn').hide();
+         $('#loginBtn').show();
+          // FB.getLoginStatus(function(response) {
+          //         statusChangeCallback(response);
+          //   });
+        }
+      else {
+          $('#logoutBtn').show();
+         $('#loginBtn').hide();
+      }
+    };
+
+    (function(d, s, id){
+       var js, fjs = d.getElementsByTagName(s)[0];
+       if (d.getElementById(id)) {return;}
+       js = d.createElement(s); js.id = id;
+       js.src = "//connect.facebook.net/en_US/sdk.js";
+       fjs.parentNode.insertBefore(js, fjs);
+     }(document, 'script', 'facebook-jssdk'));
+    
+    $(document).ready(function () {
+      $('#logoutBtn').on('click', function(event) {
+          localStorage.setItem("token", "");
+          console.log("Logged out")
+          $('#logoutBtn').hide()
+          $('#loginBtn').show()
+      });
+
+
+      var host = "wss://online.aviastudent.ru:444/ws"; // тут шаблон
+      var api = new AviastudentWS(host);
+
+      api.OnConnected = function()
+                                     {
+                                       console.log('ws api connected')
+                                       api.sendObject({'msg':'hello wo'})
+                                     }
+
+      api.OnDisconnected = function()
+                                         {
+                                           console.log('ws api disconnected')
+                                         }
+
+
+    });
+  </script>
+
+ <div>
+ <h1>Aviastudent authentication</h1>
+
+ <p>
+   <ul>
+   {% if user and not user.is_anonymous %}
+     <li>
+       <a>Hello {{ user.get_full_name|default:user.username }}!</a>
+     </li>
+   <!--   <li>
+       <a href="{% url 'auth:logout' %}?next={{ request.path }}">Logout</a>
+     </li> -->
+     <li>
+       <!-- <a href="/login/google-oauth2/?next=/">Logout</a> -->
+
+     </li>
+   {% else %}
+     <!-- <li>
+       <a href="{% url 'social:begin' 'facebook' %}?next={{ request.path }}">Login with Facebook</a>
+     </li> -->
+    
+  <!--    <li>
+       <a href="{% url 'social:begin' 'google-oauth2' %}?next={{ request.path }}">Login with Google</a>
+     </li>
+     <li>
+       <a href="{% url 'social:begin' 'twitter' %}?next={{ request.path }}">Login with Twitter</a>
+     </li> -->
+   {% endif %}
+   <p>
+    <fb:login-button scope="public_profile,email" onlogin="checkLoginState();" id="loginBtn" hidden>
+    </fb:login-button>
+    </p>
+   <p>
+    <button id="logoutBtn" class="btn btn-info" role="button" hidden>Logout</button>
+    </li>
+   </p>
+ </p>
+ </div>
+  <div
+  class="fb-like"
+  data-share="true"
+  data-width="450"
+  data-show-faces="true">
+</div>
+<a href="https://twitter.com/share" class="twitter-share-button" data-text="Follow us online!" data-via="aviastudent">Tweet</a> <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+
+
+
+<div id="status">
+</div>
+
+
+{% endblock %}

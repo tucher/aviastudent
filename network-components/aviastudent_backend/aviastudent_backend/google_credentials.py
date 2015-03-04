@@ -1,0 +1,2 @@
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '803591649238-s7n22pguns3pkef0qq0gkkeias9drh6n.apps.googleusercontent.com'
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = 'UHYm_B5GbVpsfVuY5Kb-2zku'

@@ -12,8 +12,9 @@ locale-gen UTF-8
 
 
 errcho -e "\n\n\n\n\n==================================INSTALLING REQUIRED APT PACKAGES=================================="
-apt-get install nginx python3-dev python3-pip  postgresql-server-dev-all postgresql supervisor
-
+apt-get install nginx python3-dev python3-pip  postgresql-server-dev-all postgresql supervisor npm
+ln -s /usr/bin/nodejs /usr/bin/node
+npm install -g bower
 
 errcho -e "\n\n\n\n\n==================================INSTALLING REQUIRED PIP PACKAGES=================================="
 echo 'PYTHONIOENCODING="utf-8"' >> /etc/environment 
@@ -39,10 +40,14 @@ service nginx restart
 cd ~
 virtualenv api-ws-venv
 source api-ws-venv/bin/activate
-pip3 install tornado django psycopg2 djangorestframework markdown django-filter uwsgi python-social-auth
+pip3 install tornado django psycopg2 djangorestframework markdown django-filter uwsgi python-social-auth djangorestframework-jwt
 
 mkdir logs
 ln -s  /home/aviastudent/aviastudent/network-components/api-ws-server_supervisor.conf /etc/supervisor/conf.d/
 ln -s  /home/aviastudent/aviastudent/network-components/aviastudent_backend_supervisor.conf /etc/supervisor/conf.d/
+
+cd aviastudent/network-components/aviastudent_backend
+bower init
+bower install --save angular angular-route bootstrap jquery
 
 service supervisor restart
