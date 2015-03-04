@@ -9,6 +9,7 @@ from rest_framework_jwt.utils import jwt_payload_handler, jwt_encode_handler
 from datetime import datetime
 from calendar import timegm
 from rest_framework_jwt.settings import api_settings
+from django.views.decorators.csrf import csrf_exempt
 
 
 def home(request):
@@ -61,7 +62,9 @@ class FacebookView(APIView):
 
     permission_classes = (permissions.AllowAny,)
 
+    @csrf_exempt
     def post(self, request, format=None):
+        print("HERE")
         auth_token = request.DATA.get('access_token', None)
         backend = request.DATA.get('backend', None)
         if auth_token and backend:
