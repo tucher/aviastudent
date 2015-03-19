@@ -32,16 +32,24 @@ django.setup()
 
 
 def get_subscriptions(userId):
-    return [-1, 2]
+    if userId != 1:
+        return [-1, 2]
+    else:
+        return []
 
+def get_vehicle_id(userId):
+    if userId == 1:
+        return -1
+    else:
+        None
 
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
     clients = []
     telemetry_entry_list = []
 
     def open(self, *args):
-        self.authorized = False
         self.user_id = None
+        self.token = ""
         print("open", "WebSocketHandler")
         WebSocketHandler.clients.append(self)
 
@@ -54,30 +62,42 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
             msg = json.loads(message)
         except:
             self.write_message(json.dumps({'error': 'not a valid json'}))
+            self.close()
+            WebSocketHandler.clients.remove(self)
             return
-        
-        if self.authorized == False:
-            if 'token' in msg:
-                try:
-                    user_info = jwt_decode_handler(msg['token'])
-                except:
-                    self.write_message(json.dumps({'error': 'token is not valid'}))
-                    return
+        if 'token' in msg:
+            self.token = msg['token']
+        try:
+            user_info = jwt_decode_handler(self.token)
+            if self.user_id != user_info['user_id']:
                 print('user_id', user_info['user_id'])
-                self.user_id = user_info['user_id']
-                self.authorized = True
-            else:
-                self.write_message(json.dumps({'error': 'not authorized'}))
-                return
-        else:
-            if 'ping' in msg:
-                self.write_message(json.dumps({'pong': ''}))
-                return
+            self.user_id = user_info['user_id']
+        except:
+            self.write_message(json.dumps({'error': 'not authorized'}))
+            self.close()
+            WebSocketHandler.clients.remove(self)
+            print({'error': 'not authorized'}, self.user_id)
+            return
+        if 'ping' in msg:
+            self.write_message(json.dumps({'pong': ''}))
+            return
+        if 'msg_type' in msg:
+            # print(msg)
+            if msg['msg_type'] == 'push_telem':
+                new_m = {}
+                new_m['vehicle_id'] = get_vehicle_id(self.user_id)
+                new_m["msg_type"] = "telem_update"
+                new_m["data"] = msg['data']
+                new_m["timestamp"] = msg['data']['timestamp']
+                print(new_m)
+                WebSocketHandler.telemetry_entry_list.insert(0, new_m)
         # for client in clients:
         #     client.write_message(message)
 
     def on_close(self):
-        WebSocketHandler.clients.remove(self)
+        print('closed', self.user_id)
+        if self in WebSocketHandler.clients:
+            WebSocketHandler.clients.remove(self)
 
     def check_origin(self, origin):
         return True
@@ -88,12 +108,10 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
     def send_to_clients():
         for d_entry in reversed(WebSocketHandler.telemetry_entry_list):
             id = d_entry["vehicle_id"]
-            d_entry["msg_type"] = "telem_update"
             for socket in WebSocketHandler.clients:
-                if socket.authorized is True:
-                    subscr = get_subscriptions(socket.user_id)
-                    if id in subscr:
-                        socket.write_message(json.dumps(d_entry, ensure_ascii=False))
+                subscr = get_subscriptions(socket.user_id)
+                if id in subscr:
+                    socket.write_message(json.dumps(d_entry, ensure_ascii=False))
         WebSocketHandler.telemetry_entry_list = []
 
 
@@ -103,6 +121,6 @@ ssl_options = {
 }
 http_server = tornado.httpserver.HTTPServer(tornado.web.Application([(r'/ws', WebSocketHandler)]), ssl_options=ssl_options)
 http_server.listen(444)
-tornado.ioloop.PeriodicCallback(WebSocketHandler.fake_vehicle_data_generator, 1000, tornado.ioloop.IOLoop.instance()).start()
+# tornado.ioloop.PeriodicCallback(WebSocketHandler.fake_vehicle_data_generator, 1000, tornado.ioloop.IOLoop.instance()).start()
 tornado.ioloop.PeriodicCallback(WebSocketHandler.send_to_clients, 100, tornado.ioloop.IOLoop.instance()).start()
 tornado.ioloop.IOLoop.instance().start()

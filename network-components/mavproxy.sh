@@ -1,0 +1,1 @@
+mavproxy.py --master=/dev/tty.SLAB_USBtoUART,115200 --out=192.168.1.21:14551 --out=192.168.1.21:14550 --out=127.0.0.1:14550

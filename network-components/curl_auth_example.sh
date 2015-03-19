@@ -1,0 +1,1 @@
+curl -X POST -H "Content-Type: application/json" -d '{"username":"root","password":"aviastudent"}' https://online.aviastudent.ru/api/v1/auth/login/
