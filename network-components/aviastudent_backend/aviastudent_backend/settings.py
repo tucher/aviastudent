@@ -41,8 +41,7 @@ INSTALLED_APPS = (
     'social.apps.django_app.default',
     'aviastudent_backend',
     'rest_framework',
-    'rest_framework.authtoken',
-    'online_viewer'
+    'rest_framework.authtoken'
 )
 
 MIDDLEWARE_CLASSES = (

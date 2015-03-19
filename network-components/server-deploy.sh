@@ -40,7 +40,7 @@ service nginx restart
 cd ~
 virtualenv api-ws-venv
 source api-ws-venv/bin/activate
-pip3 install tornado django psycopg2 djangorestframework markdown django-filter uwsgi python-social-auth djangorestframework-jwt requests
+pip3 install tornado django psycopg2 djangorestframework markdown django-filter uwsgi python-social-auth djangorestframework-jwt requests jsonfield
 
 mkdir logs
 ln -s  /home/aviastudent/aviastudent/network-components/api-ws-server_supervisor.conf /etc/supervisor/conf.d/

@@ -20,6 +20,8 @@ from rest_framework import exceptions
 from rest_framework_jwt import utils
 from rest_framework_jwt.settings import api_settings
 from django.contrib.auth import get_user_model
+from aviastudent_backend.models import models as AviaModels
+
 
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
 jwt_get_user_id_from_payload = api_settings.JWT_PAYLOAD_GET_USER_ID_HANDLER
@@ -32,16 +34,12 @@ django.setup()
 
 
 def get_subscriptions(userId):
-    if userId != 1:
-        return [-1, 2]
+    user_obj = get_user_model().objects.get(id=userId)
+    if hasattr(user_obj, 'onlinesubscription_set'):
+        l = user_obj.onlinesubscription_set.values_list('vehicle_id', flat=True)
+        return l
     else:
         return []
-
-def get_vehicle_id(userId):
-    if userId == 1:
-        return -1
-    else:
-        None
 
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
     clients = []
@@ -49,11 +47,12 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
     def open(self, *args):
         self.user_id = None
+        self.vehicle_id = None
         self.token = ""
         print("open", "WebSocketHandler")
         WebSocketHandler.clients.append(self)
 
-        d = serializers.serialize("json", get_user_model().objects.all(), ensure_ascii=False)
+        # d = serializers.serialize("json", get_user_model().objects.all(), ensure_ascii=False)
         #self.write_message(d)
 
 
@@ -70,9 +69,15 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         try:
             user_info = jwt_decode_handler(self.token)
             if self.user_id != user_info['user_id']:
+                self.user_id = user_info['user_id']
+                user_obj = get_user_model().objects.get(id=self.user_id)
                 print('user_id', user_info['user_id'])
-            self.user_id = user_info['user_id']
-        except:
+                if hasattr(user_obj, 'vehicle'):
+                    self.vehicle_id = user_obj.vehicle.id
+                    print('Vehicle : ', user_obj.vehicle.id)
+                print('Subscriptions: ', get_subscriptions(self.user_id))
+        except Exception as e:
+            print(e)
             self.write_message(json.dumps({'error': 'not authorized'}))
             self.close()
             WebSocketHandler.clients.remove(self)
@@ -84,13 +89,14 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         if 'msg_type' in msg:
             # print(msg)
             if msg['msg_type'] == 'push_telem':
-                new_m = {}
-                new_m['vehicle_id'] = get_vehicle_id(self.user_id)
-                new_m["msg_type"] = "telem_update"
-                new_m["data"] = msg['data']
-                new_m["timestamp"] = msg['data']['timestamp']
-                print(new_m)
-                WebSocketHandler.telemetry_entry_list.insert(0, new_m)
+                if self.vehicle_id is not None:
+                    new_m = {}
+                    new_m['vehicle_id'] = self.vehicle_id
+                    new_m["msg_type"] = "telem_update"
+                    new_m["data"] = msg['data']
+                    new_m["timestamp"] = msg['data']['timestamp']
+                    print(new_m)
+                    WebSocketHandler.telemetry_entry_list.insert(0, new_m)
         # for client in clients:
         #     client.write_message(message)
 
@@ -101,9 +107,6 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
     def check_origin(self, origin):
         return True
-
-    def fake_vehicle_data_generator():
-        WebSocketHandler.telemetry_entry_list.insert(0, {"vehicle_id": -1, "timestamp": int(time() * 1000), "data": {"alt": 10000 + randint(-100,100), "vel": 15 + randint(-5,5)}})
 
     def send_to_clients():
         for d_entry in reversed(WebSocketHandler.telemetry_entry_list):
@@ -121,6 +124,5 @@ ssl_options = {
 }
 http_server = tornado.httpserver.HTTPServer(tornado.web.Application([(r'/ws', WebSocketHandler)]), ssl_options=ssl_options)
 http_server.listen(444)
-# tornado.ioloop.PeriodicCallback(WebSocketHandler.fake_vehicle_data_generator, 1000, tornado.ioloop.IOLoop.instance()).start()
 tornado.ioloop.PeriodicCallback(WebSocketHandler.send_to_clients, 100, tornado.ioloop.IOLoop.instance()).start()
 tornado.ioloop.IOLoop.instance().start()

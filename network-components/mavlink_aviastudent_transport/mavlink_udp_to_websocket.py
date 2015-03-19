@@ -62,7 +62,6 @@ def msg_to_js(msg):
 
 fake_mod = True
 while True:
-    # L -> R
     l = msrc.recv_match()
     time.sleep(2)
     payload = {}
