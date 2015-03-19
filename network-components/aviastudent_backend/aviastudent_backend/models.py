@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from jsonfield import JSONField
+from django_pgjson.fields import JsonField
 
 
 class Vehicle(models.Model):
@@ -15,10 +15,10 @@ class Vehicle(models.Model):
 class Telemetry(models.Model):
 
     vehicle = models.ForeignKey(Vehicle, verbose_name='Source vehicle')
-    record = JSONField(verbose_name='Telemetry data')
+    record = JsonField(verbose_name='Telemetry data')
 
     def __str__(self):
-        return 'Telemetry entry of vehicle "%s", ' % (self.vehicle.id, self.vehicle.description)
+        return 'Telemetry entry of vehicle "%s"' % (self.vehicle.description)
 
 
 class OnlineSubscription(models.Model):

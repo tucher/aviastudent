@@ -20,7 +20,7 @@ from rest_framework import exceptions
 from rest_framework_jwt import utils
 from rest_framework_jwt.settings import api_settings
 from django.contrib.auth import get_user_model
-from aviastudent_backend.models import models as AviaModels
+from aviastudent_backend.models import Telemetry, Vehicle
 
 
 jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
@@ -90,13 +90,17 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
             # print(msg)
             if msg['msg_type'] == 'push_telem':
                 if self.vehicle_id is not None:
-                    new_m = {}
-                    new_m['vehicle_id'] = self.vehicle_id
-                    new_m["msg_type"] = "telem_update"
-                    new_m["data"] = msg['data']
-                    new_m["timestamp"] = msg['data']['timestamp']
-                    print(new_m)
-                    WebSocketHandler.telemetry_entry_list.insert(0, new_m)
+                    if 'data' in msg and 'timestamp' in msg['data']:
+                        new_m = {}
+                        new_m['vehicle_id'] = self.vehicle_id
+                        new_m["msg_type"] = "telem_update"
+                        new_m["data"] = msg['data']
+                        new_m["timestamp"] = msg['data']['timestamp']
+                        print(new_m)
+                        WebSocketHandler.telemetry_entry_list.insert(0, new_m)
+                        t = Telemetry(vehicle=Vehicle.objects.get(id=self.vehicle_id), record= msg['data'])
+                        t.save()
+
         # for client in clients:
         #     client.write_message(message)
 
