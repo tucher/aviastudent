@@ -38,11 +38,14 @@
       // console.log('RonTelemetryUpdate default handler: ', vehicle_id, JSON.stringify(tel_data));
                       $('#example').removeClass('hidden');
                       var t = $('#example').DataTable();
-                      t.row.add( [
-                                  vehicle_id,
-                                  timestamp,
-                                  JSON.stringify(tel_data)
-                              ] ).draw();
+                      t.clear();
+                      for (var n in tel_data) {
+                        t.row.add( [
+                                    n,
+                                    JSON.stringify(tel_data[n])
+                                ] ).draw();
+                      }
+                      t.draw();
               }
 
   $('#logoutBtn').hide()
@@ -78,7 +81,8 @@
                  $('#example').dataTable( {
                   "searching": false,
                   "lengthChange": false,
-                   "pageLength": 50
+                   "pageLength": 50,
+                   "bInfo": false
                 } );
                   var t = $('#example').DataTable();
                   t.order( [ 1, 'desc' ] ).draw();
@@ -95,12 +99,6 @@
                 $('#logoutBtn').on('click', function(event) {
                   aviastudentAPI.logOut();
                 });
-
-                aviastudentAPI.get( "api/v1/users/")
-              .done(function( data ) {
-                  console.log(data)
-               
-              });
 
     });
   </script>
@@ -132,9 +130,8 @@
 <table id="example" class="table table-striped table-bordered" cellspacing="0" width="100%">
         <thead>
             <tr>
-                <th>Vehicle ID</th>
-                <th>Timestamp</th>
-                <th>Telemetry data</th>
+                <th>Key</th>
+                <th>Value</th>
             </tr>
         </thead>
  

@@ -14,7 +14,7 @@ import websocket
 
 
 token = requests.post("https://online.aviastudent.ru/api/v1/auth/login/", 
-                       data={"username": "root", "password": "aviastudent"}, verify=False).json()['token']
+                       data={"username": "test_vehicle", "password": "123"}, verify=False).json()['token']
 print("Token:", token)
 
 
