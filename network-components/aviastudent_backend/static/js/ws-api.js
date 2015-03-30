@@ -1,7 +1,7 @@
 function AviastudentWS()
 {
 
-  
+  this.fb_access_token = ""
   this.host = "wss://online.aviastudent.ru:444/ws";
   _this_obj = this;
   this.loginFacebook = function(accessToken) {
@@ -9,8 +9,8 @@ function AviastudentWS()
               .done(function( data ) {
                 localStorage.setItem("token", data.token);
                 _this_obj.setToken(data.token);
-               _this_obj.onLoggedIn()
-               
+               _this_obj.onLoggedIn();
+               _this_obj.fb_access_token = accessToken;
               });
   }
   this.logOut = function() {
@@ -42,6 +42,7 @@ this.onLoggedOut=function (){console.log('onLoggedOut default handler'); }
 
   this.onConnected=function (){console.log('connected default handler'); }
   this.onDisconnected=function (){console.log('disconnected default handler');  }
+  this.onKicked=function (){console.log('kicked default handler');  }
 
   this.onRawMessage=function(val){
     console.log('Raw msg default handler: ' + val);
@@ -57,27 +58,27 @@ this.onLoggedOut=function (){console.log('onLoggedOut default handler'); }
   this.setToken = function(token_str) {
     console.log("AviastudentWS:  token set:", token_str)
     if(token_str == "") {
-        if(_this_obj != undefined && _this_obj.socket != undefined)
-          _this_obj.socket.close();
-        _this_obj.socket = null;
-        // $.ajaxSetup({headers: {"Authorization": ""}})
+    //     if(_this_obj != undefined && _this_obj.socket != undefined)
+    //       _this_obj.socket.close();
+    //     _this_obj.socket = null;
+    //     // $.ajaxSetup({headers: {"Authorization": ""}})
     }
     else if(_this_obj.token != token_str) {
-      _this_obj.socket = new WebSocket(_this_obj.host);
-      _this_obj.socket.onclose  = function()  {  }
+    //   _this_obj.socket = new WebSocket(_this_obj.host);
+    //   _this_obj.socket.onclose  = function()  {  }
       
-      _this_obj.socket.onopen = function()
-                            {
-                              _this_obj.sendObject({'ffuuuu':'f'})
-                              _this_obj.onConnected();
-                            }
-      _this_obj.socket.onclose= function()
-                            {
-                              _this_obj.onDisconnected();
-                            }
-      _this_obj.socket.onmessage = this.MessageHandler;
+    //   _this_obj.socket.onopen = function()
+    //                         {
+    //                           _this_obj.sendObject({'ffuuuu':'f'})
+    //                           _this_obj.onConnected();
+    //                         }
+    //   _this_obj.socket.onclose= function()
+    //                         {
+    //                           _this_obj.onDisconnected();
+    //                         }
+    //   _this_obj.socket.onmessage = this.MessageHandler;
       
-      window.setInterval(_this_obj.hostTimeout, 2000);
+      
     }
     _this_obj.token = token_str
     // $.ajaxSetup({headers: {"Authorization": "JWT " + token_str}})
@@ -95,16 +96,26 @@ this.onLoggedOut=function (){console.log('onLoggedOut default handler'); }
     if(obj.msg_type == "telem_update") {
         _this_obj.onTelemetryUpdate(obj.vehicle_id, obj.timestamp, obj.data);
     }
+    else if('error' in obj && obj.error == 'not authorized'){
+        _this_obj.logOut()
+        _this_obj.onKicked()
+
+    }
  
   }
 
   this.hostTimeout = function() {
     if(_this_obj.socket == null || _this_obj.socket.readyState != _this_obj.socket.OPEN)
     {
+      
+      console.log("AviastudentWS reconnecting");
+      if(_this_obj.fb_access_token != "") {
+          _this_obj.loginFacebook(_this_obj.fb_access_token)
+      }
       if(_this_obj.token == "")
         return;
-      console.log("AviastudentWS reconnecting");
-      _this_obj.socket.onclose  = function()  {  }
+      if(_this_obj.socket  != null)
+          _this_obj.socket.close();
 
       _this_obj.socket = new WebSocket(_this_obj.host);
       _this_obj.socket.onopen = function()
@@ -121,8 +132,10 @@ this.onLoggedOut=function (){console.log('onLoggedOut default handler'); }
     else
       _this_obj.socket.send('{"ping":""}');
   }
-
-  this.setToken(localStorage.getItem("token"));
+  _this_obj.socket == null
+  _this_obj.setToken(localStorage.getItem("token"));
+  window.setInterval(_this_obj.hostTimeout, 2000);
+  // _this_obj.hostTimeout();
 }
 
 var aviastudentAPI = new AviastudentWS();

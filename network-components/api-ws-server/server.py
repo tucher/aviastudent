@@ -4,8 +4,8 @@ import tornado.websocket
 import tornado.httpserver
 import json
 import sys
-from random import randint
-from time import time
+import datetime
+import pytz
 
 # the mock-0.3.1 dir contains testcase.py, testutils.py & mock.py
 
@@ -30,16 +30,14 @@ import django
 django.setup()
 
 
-
-
-
 def get_subscriptions(userId):
     user_obj = get_user_model().objects.get(id=userId)
-    if hasattr(user_obj, 'onlinesubscription_set'):
-        l = user_obj.onlinesubscription_set.values_list('vehicle_id', flat=True)
+    if hasattr(user_obj, 'subscribed_vehicles'):
+        l = user_obj.subscribed_vehicles.values_list('id', flat=True)
         return l
     else:
         return []
+
 
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
     clients = []
@@ -49,23 +47,26 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         self.user_id = None
         self.vehicle_id = None
         self.token = ""
+        self.closed_manually = False
         print("open", "WebSocketHandler")
         WebSocketHandler.clients.append(self)
 
         # d = serializers.serialize("json", get_user_model().objects.all(), ensure_ascii=False)
-        #self.write_message(d)
-
+        # self.write_message(d)
 
     def on_message(self, message):
+        if self not in WebSocketHandler.clients or self.closed_manually:
+            return
         try:
             msg = json.loads(message)
         except:
             self.write_message(json.dumps({'error': 'not a valid json'}))
             self.close()
-            WebSocketHandler.clients.remove(self)
             return
         if 'token' in msg:
             self.token = msg['token']
+        if self.token == "":
+            return
         try:
             user_info = jwt_decode_handler(self.token)
             if self.user_id != user_info['user_id']:
@@ -75,14 +76,21 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
                 if hasattr(user_obj, 'vehicle'):
                     self.vehicle_id = user_obj.vehicle.id
                     print('Vehicle : ', user_obj.vehicle.id)
-                print('Subscriptions: ', get_subscriptions(self.user_id))
+                subscr = get_subscriptions(self.user_id)
+                if len(subscr) > 0:
+                    print('Subscriptions: ', subscr)
+        except jwt.ExpiredSignatureError:
+            try:
+                self.closed_manually = True
+                self.write_message(json.dumps({'error': 'not authorized'}))
+            except:
+                pass
+                print('cannot write to client ', self.user_id)
+            print({'error': 'not authorized'}, self.user_id)
+            self.close()
+            return
         except Exception as e:
             print(e)
-            self.write_message(json.dumps({'error': 'not authorized'}))
-            self.close()
-            WebSocketHandler.clients.remove(self)
-            print({'error': 'not authorized'}, self.user_id)
-            return
         if 'ping' in msg:
             self.write_message(json.dumps({'pong': ''}))
             return
@@ -90,19 +98,18 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
             # print(msg)
             if msg['msg_type'] == 'push_telem':
                 if self.vehicle_id is not None:
-                    if 'data' in msg and 'timestamp' in msg['data']:
+                    if 'data' in msg and '_mt_timestamp' in msg:
                         new_m = {}
                         new_m['vehicle_id'] = self.vehicle_id
                         new_m["msg_type"] = "telem_update"
                         new_m["data"] = msg['data']
-                        new_m["timestamp"] = msg['data']['timestamp']
-                        print(new_m)
+                        new_m["timestamp"] = msg['_mt_timestamp']
                         WebSocketHandler.telemetry_entry_list.insert(0, new_m)
-                        t = Telemetry(vehicle=Vehicle.objects.get(id=self.vehicle_id), record= msg['data'])
-                        t.save()
+                        self.saveTelemtry(self.vehicle_id, msg['data'], msg['_mt_timestamp'])
 
-        # for client in clients:
-        #     client.write_message(message)
+    def saveTelemtry(self, id, data, timestamp):
+        t = Telemetry(vehicle=Vehicle.objects.get(id=id), record=data, timestamp=datetime.datetime.fromtimestamp(timestamp, tz=pytz.UTC))
+        t.save()
 
     def on_close(self):
         print('closed', self.user_id)
@@ -113,18 +120,31 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         return True
 
     def send_to_clients():
-        for d_entry in reversed(WebSocketHandler.telemetry_entry_list):
-            id = d_entry["vehicle_id"]
+        try:
             for socket in WebSocketHandler.clients:
-                subscr = get_subscriptions(socket.user_id)
-                if id in subscr:
-                    socket.write_message(json.dumps(d_entry, ensure_ascii=False))
-        WebSocketHandler.telemetry_entry_list = []
+                if not socket.closed_manually and socket.vehicle_id is None and socket.token != "":
+                    try:
+                        jwt_decode_handler(socket.token)
+                        to_send = reversed(WebSocketHandler.telemetry_entry_list)
+                        subscr = get_subscriptions(socket.user_id)
+                        for d_entry in to_send:
+                            id = d_entry["vehicle_id"]
+                            if id in subscr:
+                                socket.write_message(json.dumps(d_entry, ensure_ascii=False))
+                    except jwt.ExpiredSignatureError:
+                        # print('Bad recepient')
+                        socket.closed_manually = True
+                        socket.write_message(json.dumps({'error': 'not authorized'}))
+                        socket.close()
+        except Exception as e:
+            print(e)
+        finally:
+            WebSocketHandler.telemetry_entry_list = []
 
 
 ssl_options = {
-        "certfile": "ssl-certs/tornado.crt",
-        "keyfile": "ssl-certs/tornado.key"
+    "certfile": "ssl-certs/tornado.crt",
+    "keyfile": "ssl-certs/tornado.key"
 }
 http_server = tornado.httpserver.HTTPServer(tornado.web.Application([(r'/ws', WebSocketHandler)]), ssl_options=ssl_options)
 http_server.listen(444)

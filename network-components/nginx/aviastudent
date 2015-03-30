@@ -1,6 +1,7 @@
 server {
     # the port your site will be served on
-    listen 443 ssl;
+    listen 443;
+    ssl on;
 
 	ssl_certificate /home/aviastudent/aviastudent/network-components/api-ws-server/ssl-certs/tornado.crt;
   	ssl_certificate_key /home/aviastudent/aviastudent/network-components/api-ws-server/ssl-certs/tornado.key;
